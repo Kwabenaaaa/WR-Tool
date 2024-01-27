@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WR Prospect Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            background-color: #f0f0f0; /* Light gray background */
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            background-color: #fff;
+        }
+
+        th,
+        td {
+            border: 2px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        canvas {
+            max-width: 400px; /* Adjust the maximum width as needed */
+            margin-top: 10px;
+            border: 2px solid #ddd;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        input {
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+
+        .info-box {
+            background-color: #ffffff;
+            border: 2px solid #333;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-width: 400px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #imageBox {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #playerImage {
+            max-width: 100%; /* Set the maximum width to 100% of the container */
+            max-height: 200px; /* Set the maximum height as needed */
+            margin-top: 10px;
+            border: 2px solid #ddd;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #teamlogo {
+      max-width: 100px;
+      height: auto;
+      margin-top: 10px;
+    }
+        #csvFileInput {
+            padding: 10px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #csvFileInput:hover {
+            background-color: #45a049;
+        }
+
+        #nameDropdown {
+            padding: 10px;
+            background-color: #008CBA; /* Blue */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #nameDropdown:hover {
+            background-color: #007B9D;
+        }
+
+        #table-container {
+            margin-bottom: 20px;
+        }
+
+       
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1>WR Prospect Tool</h1>
+    
+   
+    <div class="info-box" id="infoBox">
+        <!-- Information will be dynamically populated here -->
+    </div>
+
+    <input type="file" id="csvFileInput" accept=".csv, .xlsx" >
+    
+    
+
+    <div>
+        <label for="nameDropdown">Select Player:</label>
+        <select id="nameDropdown"></select>
+    </div>
+    
+    <div id="table-container"></div>
+    <div id="imageBox">
+        <img id="playerImage" src="" alt="Player Image">
+    </div>
+
+    <!-- Radar Chart -->
+   
+    <!-- Bar Chart: Dash, Shuttle, Cone -->
+   
+
+    <!-- Bar Chart: TPRR -->
+   
+
+    <!-- Bar Chart: YPRR -->
+   
+    <div class="percentile-table" id="percentileTable">
+        <!-- Percentile table will be dynamically populated here -->
+    </div>
+    <!-- Bar Chart: Open Probability and Catch Probability -->
+    <div>
+        <h3>Physical Percentiles</h3>
+        <canvas id="barChartPhysical"></canvas>
+    </div>
+    <div>
+        <h3>Statistical Percentiles</h3>
+        <canvas id="barChartOpenCatchProb"></canvas>
+    </div>
+
+    <div>
+        <h3>Combine Percentiles</h3>
+        <canvas id="barChartCombine"></canvas>
+    </div>
+    <div>
+        <h3>PFF</h3>
+        <canvas id="barChartPFF"></canvas>
+    </div>
+    <div>
+        <h3>Catching</h3>
+        <canvas id="barChartCatching"></canvas>
+    </div>
+    <div>
+        <h3>Best PPG & ADP</h3>
+        <canvas id="barChartBestPPGADP"></canvas>
+    </div>  
+    <div>
+        <h3>PPG and ADP percentile</h3>
+        <canvas id="barChartBestPPGADPPercentage"></canvas>
+    </div> 
+    <div>
+        <h3>College Production</h3>
+        <canvas id="barChartCollegeProduction" width="1200" height="600"></canvas>
+    </div>
+    <div>
+        <h3>College Production percentile</h3>
+        <canvas id="barChartCollegeProductionpercent" width="1200" height="600"></canvas>
+    </div>
+</body>
+
+<script>
+    // Your JavaScript code here...
+    
+
+        // Function to parse embedded CSV data
+        function parseEmbeddedCSV(csv) {
+            const rows = csv.trim().split('\n');
+            const header = rows[0].split(',');
+
+            const data = rows.slice(1).map(row => {
+                const values = row.split(',');
+                return header.reduce((obj, key, index) => {
+                    obj[key.trim()] = values[index].trim();
+                    return obj;
+                }, {});
+            });
+
+            return data;
+        }
+
+        // Example usage
+        const embeddedCSVResult = parseEmbeddedCSV(embeddedCSVData);
+        console.log(embeddedCSVResult);
+</script>
+
+</html>
+
+    
+</body>
+
+
+
+    <script>
+        // Function to handle the Compare button click
+        function comparePlayers() {
+            // Replace 'PlayerName' with the actual player's name
+
+            // Redirect to the comparison page with the selected player's name as a parameter
+            window.location.href = 'comparison.html?player=';
+        }  
+   let csvData;
+ 
+
+
+ 
+
+    document.getElementById('csvFileInput').addEventListener('change', handleFile);
+
+function handleFile(e) {
+    const file = e.target.files[0];
+
+    if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'csv' || fileExtension === 'xlsx') {
+                const csv = e.target.result;
+                csvData = parseCSV(csv);
+                populateDropdown(csvData, 'name');
+                displayTable(csvData);
+
+                updateBarCharts(csvData);
+                updateInfoBox(csvData[0]); // Display information for the first player by default
+            } else {
+                alert('Invalid file type. Please upload a CSV or XLSX file.');
+            }
+        };
+
+        reader.readAsText(file);
+    }
+}
+
+
+
+
+function updatePlayerImage(playerName) {
+    const playerImage = document.getElementById('playerImage');
+    playerImage.src = playerImages[playerName] || '';
+  
+   
+}
+
+function updateBarChartPFF(data) {
+    const barChartCanvas = document.getElementById('barChartPFF');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Grade vs man', 'CC %', 'PFF'],
+        datasets: [{
+            label: 'Percentiles',
+            data: [
+                parseFloat(data[0]['man']),
+                parseFloat(data[0]['cc']),
+                parseFloat(data[0]['pff'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',  // Background color for 'Grade vs man'
+                'rgba(54, 162, 235, 0.2)', // Background color for 'Contested Catch Percentage'
+                'rgba(255, 206, 86, 0.2)'  // Background color for 'PFF Grade'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',   // Border color for 'Grade vs man'
+                'rgba(54, 162, 235, 1)',  // Border color for 'Contested Catch Percentage'
+                'rgba(255, 206, 86, 1)'   // Border color for 'PFF Grade'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartPFF) {
+        window.myBarChartPFF.destroy();
+    }
+
+    window.myBarChartPFF = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+
+
+
+function updateInfoBox(playerData) {
+        const infoBox = document.getElementById('infoBox');
+           
+    document.getElementById('nameDropdown').addEventListener('change', function () {
+        const selectedName = this.value;
+        const selectedPlayerData = csvData.find(name => name['name'] === selectedName);
+
+            if (selectedPlayerData) {
+                updateInfoBox(selectedPlayerData);
+                updatePlayerImage(selectedName);
+
+            }
+        });
+                csvData.forEach(playerData => {
+        const option = document.createElement('option');
+                option.value = playerData.player;
+                option.textContent = playerData.player;
+                nameDropdown.appendChild(option);
+        });
+                infoBox.innerHTML = '<h2>Information</h2><ul>';
+                percentileTable.innerHTML = '';
+
+        const infoColumns = ['name', 'Team', 'ht', 'wt', 'draft_age', 'ras', 'draft_pick', 'hs', 'year','breakout_age'];
+
+                infoColumns.forEach(column => {
+        const columnName = column === 'ht' ? 'Height' : column;
+        const value = playerData[column];
+                infoBox.innerHTML += `<li><strong>${columnName}:</strong> ${value}</li>`;
+            });
+
+            
+                infoBox.innerHTML += '</ul>';
+
+    // Display the image box
+                imageBox.style.display = 'block';
+}
+        
+
+
+
+    document.getElementById('nameDropdown').addEventListener('change', function () {
+        const selectedName = this.value;
+        const selectedPlayerData = csvData.find(name => name['name'] === selectedName);
+
+            if (selectedPlayerData) {
+        updateInfoBox(selectedPlayerData);
+    }
+});
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',');
+    const result = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const currentLine = lines[i].split(',');
+        const obj = {};
+
+        for (let j = 0; j < headers.length; j++) {
+            obj[headers[j].trim()] = currentLine[j] ? currentLine[j].trim() : ''; // handle empty values
+        }
+
+        result.push(obj);
+    }
+
+    return result;
+}
+
+
+function populateDropdown(data, columnName) {
+        const nameDropdown = document.getElementById('nameDropdown');
+
+    
+    // Add each name from the specified column to the dropdown
+            data.forEach(item => {
+        const name = item[columnName];
+        const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            nameDropdown.appendChild(option);
+    });
+
+    // Add a change event listener to the dropdown
+    nameDropdown.addEventListener('change', () => {
+        const selectedName = nameDropdown.value;
+        const filteredData = csvData.filter(item => item[columnName] === selectedName);
+            displayTable(filteredData);
+            updateCharts(filteredData);
+    });
+}
+
+
+function displayTable(data) {
+        const tableContainer = document.getElementById('table-container');
+            tableContainer.innerHTML = '';
+
+        const table = document.createElement('table');
+        const headerRow = table.insertRow(0);
+
+            for (let header in data[0]) {
+        const th = document.createElement('th');
+                th.innerHTML = header;
+                headerRow.appendChild(th);
+            }
+
+            data.forEach((rowData, index) => {
+        const row = table.insertRow(index + 1);
+
+                for (let header in data[0]) {
+        const cell = row.insertCell();
+                    cell.innerHTML = rowData[header];
+                }
+            });
+
+            tableContainer.appendChild(table);
+        }
+        function updateBarChartCatching(data) {
+    const barChartCanvas = document.getElementById('barChartCatching');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Drop %', 'YAC per Catch', 'ADOT', 'Touches per Tackles Missed'],
+        datasets: [{
+            label: 'Catching Percentiles',
+            data: [
+                parseFloat(data[0]['drop']),
+                parseFloat(data[0]['yacpc']),
+                parseFloat(data[0]['adot']),
+                parseFloat(data[0]['tpmt'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',  // Background color for 'Drop %'
+                'rgba(54, 162, 235, 0.2)', // Background color for 'YAC per Catch'
+                'rgba(255, 206, 86, 0.2)',  // Background color for 'ADOT'
+                'rgba(75, 192, 192, 0.2)'  // Background color for 'Touches per Tackles Missed'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',   // Border color for 'Drop %'
+                'rgba(54, 162, 235, 1)',  // Border color for 'YAC per Catch'
+                'rgba(255, 206, 86, 1)',   // Border color for 'ADOT'
+                'rgba(75, 192, 192, 1)'   // Border color for 'Touches per Tackles Missed'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartCatching) {
+        window.myBarChartCatching.destroy();
+    }
+
+    window.myBarChartCatching = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+function updateBarChartBestPPGADP(data) {
+    const barChartCanvas = document.getElementById('barChartBestPPGADP');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Best PPG', 'ADP'],
+        datasets: [{
+            label: 'Values',
+            data: [
+                parseFloat(data[0]['best_ppg']),
+                parseFloat(data[0]['adp'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',  // Background color for 'Best PPG'
+                'rgba(54, 162, 235, 0.2)'   // Background color for 'ADP'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',   // Border color for 'Best PPG'
+                'rgba(54, 162, 235, 1)'    // Border color for 'ADP'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 20
+            }
+        }
+    };
+
+    if (window.myBarChartBestPPGADP) {
+        window.myBarChartBestPPGADP.destroy();
+    }
+
+    window.myBarChartBestPPGADP = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+function updateBarChartBestPPGADPPercentage(data) {
+    const barChartCanvas = document.getElementById('barChartBestPPGADPPercentage');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['PPG Percentile', 'ADP Percentile'],
+        datasets: [{
+            label: 'Percentile',
+            data: [
+                parseFloat(data[0]['best_ppgp']),
+                parseFloat(data[0]['adpp'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',  // Background color for 'Best PPG Percentage'
+                'rgba(54, 162, 235, 0.2)'   // Background color for 'ADP Percentage'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',   // Border color for 'Best PPG Percentage'
+                'rgba(54, 162, 235, 1)'    // Border color for 'ADP Percentage'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartBestPPGADPPercentage) {
+        window.myBarChartBestPPGADPPercentage.destroy();
+    }
+
+    window.myBarChartBestPPGADPPercentage = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+function updateCharts(data) {
+            ;
+           
+           
+            
+            updateBarChartPhysical(data);
+            updateBarChartCombine(data);
+            updateBarChartOpenCatchProb(data);
+            updateBarChartPFF(data);
+            updateBarChartCatching(data);
+            updateBarChartBestPPGADP(data);
+            updateBarChartBestPPGADPPercentage(data);
+           
+        }
+
+
+
+
+
+function updateBarChartPhysical(data) {
+    const barChartCanvas = document.getElementById('barChartPhysical');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Height', 'Weight', 'Draft Age', 'Breakout Age'],
+        datasets: [{
+            label: 'Physical Percentiles',
+            data: [
+                parseFloat(data[0]['htp']),
+                parseFloat(data[0]['wtp']),
+                parseFloat(data[0]['draft_agep']),
+                parseFloat(data[0]['breakoutagep'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartPhysical) {
+        window.myBarChartPhysical.destroy();
+    }
+
+    window.myBarChartPhysical = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+<!-- Add the following code inside the existing <script> tag -->
+
+// Function to update the bar chart for college production
+function updateBarChartCollegeProduction(data) {
+    const barChartCanvas = document.getElementById('barChartCollegeProduction');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Freshman', 'Sophomore', 'Junior', 'Senior', '5th Year'],
+        datasets: [
+            {
+                label: 'Team Reception Percentage',
+                data: [
+                    parseFloat(data[0]['freshr']),
+                    parseFloat(data[0]['sophr']),
+                    parseFloat(data[0]['junr']),
+                    parseFloat(data[0]['senr']),
+                    parseFloat(data[0]['senrr'])
+                ],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Team Yards Percentage',
+                data: [
+                    parseFloat(data[0]['freshy']),
+                    parseFloat(data[0]['sophy']),
+                    parseFloat(data[0]['juny']),
+                    parseFloat(data[0]['seny']),
+                    parseFloat(data[0]['senrry'])
+                ],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Team Touchdown Percentage',
+                data: [
+                    parseFloat(data[0]['fresht']),
+                    parseFloat(data[0]['sopht']),
+                    parseFloat(data[0]['junt']),
+                    parseFloat(data[0]['sent']),
+                    parseFloat(data[0]['senrrt'])
+                ],
+                backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 50
+            }
+        }
+    };
+
+    if (window.myBarChartCollegeProduction) {
+        window.myBarChartCollegeProduction.destroy();
+    }
+
+    window.myBarChartCollegeProduction = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+
+// Add a change event listener to the dropdown to update the college production bar chart
+document.getElementById('nameDropdown').addEventListener('change', function () {
+    const selectedName = this.value;
+    const selectedPlayerData = csvData.find(name => name['name'] === selectedName);
+
+    if (selectedPlayerData) {
+        updateBarChartCollegeProduction([selectedPlayerData]);
+    }
+});
+
+
+function updateBarChartCollegeProductionpercent(data) {
+    const barChartCanvas = document.getElementById('barChartCollegeProductionpercent');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Freshman', 'Sophomore', 'Junior', 'Senior', '5th Year'],
+        datasets: [
+            {
+                label: 'Team Reception Percentile',
+                data: [
+                    parseFloat(data[0]['freshrp']),
+                    parseFloat(data[0]['sophrp']),
+                    parseFloat(data[0]['junrp']),
+                    parseFloat(data[0]['senrp']),
+                    parseFloat(data[0]['senrrp'])
+                ],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Team Yards Percentile',
+                data: [
+                    parseFloat(data[0]['freshyp']),
+                    parseFloat(data[0]['sophyp']),
+                    parseFloat(data[0]['junyp']),
+                    parseFloat(data[0]['senyp']),
+                    parseFloat(data[0]['senrryp'])
+                ],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Team Touchdown Percentile',
+                data: [
+                    parseFloat(data[0]['freshtp']),
+                    parseFloat(data[0]['sophtp']),
+                    parseFloat(data[0]['juntp']),
+                    parseFloat(data[0]['sentp']),
+                    parseFloat(data[0]['senrrtp'])
+                ],
+                backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                borderColor: 'rgba(255, 205, 86, 1)',
+                borderWidth: 1
+            }
+        ]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartCollegeProductionpercent) {
+        window.myBarChartCollegeProductionpercent.destroy();
+    }
+
+    window.myBarChartCollegeProductionpercent = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+
+// Add a change event listener to the dropdown to update the college production bar chart
+document.getElementById('nameDropdown').addEventListener('change', function () {
+    const selectedName = this.value;
+    const selectedPlayerData = csvData.find(name => name['name'] === selectedName);
+
+    if (selectedPlayerData) {
+        updateBarChartCollegeProductionpercent([selectedPlayerData]);
+    }
+});
+function updateBarChartOpenCatchProb(data) {
+    const barChartCanvas = document.getElementById('barChartOpenCatchProb');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Open', 'Catch', 'YAC', 'YPRR', 'TPRR'], // Include 'YPRR Percentile' and 'TPRR Percentile' labels
+        datasets: [{
+            label: 'Percentile',
+            data: [
+                parseFloat(data[0]['open_p']),
+                parseFloat(data[0]['catch_p']),
+                parseFloat(data[0]['yac_p']),
+                parseFloat(data[0]['yprr_p']), // Include 'yprr_p' value
+                parseFloat(data[0]['tprr_p']) // Include 'tprr_p' value
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartOpenCatchProb) {
+        window.myBarChartOpenCatchProb.destroy();
+    }
+
+    window.myBarChartOpenCatchProb = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+
+
+function updateBarChartCombine(data) {
+    const barChartCanvas = document.getElementById('barChartCombine');
+    const ctx = barChartCanvas.getContext('2d');
+
+    const chartData = {
+        labels: ['Ras', '40', 'Vert', 'Broad', '3 Cone', 'Shuttle'],
+        datasets: [{
+            label: 'Combine Percentiles',
+            data: [
+                parseFloat(data[0]['rasp']),
+                parseFloat(data[0]['dashp']),
+                parseFloat(data[0]['vertp']),
+                parseFloat(data[0]['broadp']),
+                parseFloat(data[0]['conep']),
+                parseFloat(data[0]['shuttlep'])
+            ],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                min: 0,
+                max: 1
+            }
+        }
+    };
+
+    if (window.myBarChartCombine) {
+        window.myBarChartCombine.destroy();
+    }
+
+    window.myBarChartCombine = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: chartOptions
+    });
+}
+
+const playerImages = {
+            'Jermaine Burton': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4429033.png',
+            'Jacob Cowing': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4575665.png',
+            'Tory Horton': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4597703.png', 
+            'Johnny Wilson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4686104.png',
+    'Keon Coleman': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4635008.png&w=350&h=254',
+    'Ladd McConkey': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4612826.png&w=350&h=254',
+    'Jamari Thrash': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4428678.png',
+    'Malik Nabers': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4595348.png',
+    'Brian Thomas Jr.': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4432773.png',
+    'Roman Wilson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4431492.png&w=350&h=254',
+    'Devontez Walker': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4696882.png&w=350&h=254',
+    'Marvin Harrison Jr.': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4432708.png&w=350&h=254',
+    'Emeka Egbuka': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4567750.png',
+    'Tre Harris': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4686612.png&w=350&h=254',
+    'Zakhari Franklin': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4427225.png&w=350&h=254',
+    'Tez Johnson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4608810.png',
+    'Troy Franklin': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4431280.png&w=350&h=254',
+    'Xavier Legette': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4430034.png',
+    'Xavier Worthy': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4683062.png&w=350&h=254',
+    'Adonai Mitchell': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4597500.png',
+    'Ainias Smith': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4428532.png',
+    'Brenden Rice': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4686781.png',
+    'Rome Odunze': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4431299.png&w=350&h=254',
+    'Jalen McMillan': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4430834.png',
+    'Ja\'Lynn Polk': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4430637.png',
+    'Malachi Corley': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4613104.png',
+    'Zay Flowers': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Zay-Flowers-WR-BostonCollege.png',
+    'Puka Nacua': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Puka-Nacua-WR-Washington.png',
+    'Tre Tucker': 'https://www.playerprofiler.com/wp-content/uploads/2023/01/tre-tucker-advanced-stats.png',
+    'Tyler Scott': 'https://www.playerprofiler.com/wp-content/uploads/2023/01/tyler-scott-advanced-stats.png',
+    'Justin Shorter': 'https://www.playerprofiler.com/wp-content/uploads/2022/02/justin-shorter-advanced-stats.png',
+    'Nathaniel Dell': 'https://www.playerprofiler.com/wp-content/uploads/2023/01/nathaniel-dell-advanced-stats.png',
+    'Jayden Reed': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Jayden-Reed-WR-MichiganState.png',
+    'Josh Downs': 'https://www.si.com/.image/t_share/MTkwMzU2NTE2MTg2ODkxNjY4/north-carolina-wr-josh-downs.png',
+    'Jaxon Smith-Njigba': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4430878.png',
+    'Marvin Mims': 'https://www.si.com/.image/t_share/MTkwNTY0Njg2NTQwODQyODc2/oklahoma-wr-marvin-mims.png',
+    'Jonathan Mingo': 'https://www.si.com/.image/t_share/MTgyNzQwMDEyMDQxNzc0NDk5/i.png',
+    'Charlie Jones': 'https://www.si.com/.image/t_share/MTkzNjgwOTU2OTcwNzcxOTA3/purdue-wr-charlie-jones.png',
+    'Rashee Rice':'https://www.playerprofiler.com/wp-content/uploads/2022/12/Rashee-Rice.png',
+    'Michael Wilson': 'https://www.si.com/.image/t_share/MTkzODEwNDk4ODIxNTYzODg4/stanford-wr-michael-wilson.png',
+    'Quentin Johnston': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Quentin-Johnston-WR-TCU.png',
+    'Derius Davis': 'https://www.si.com/.image/t_share/MTkzODEwNTMzOTg2NjA4NjI0/tcu-wr-derius-davis.png',
+    'Jalin Hyatt': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Jalin-Hyatt-WR-Tennessee.png',
+    'Cedric Tillman': 'https://www.si.com/.image/t_share/MTg5NTY1MzQ4ODUxMjMwMjky/tennessee-wr-cedric-tillman.png',
+    'Jordan Addison': 'https://www.si.com/.image/t_share/MTkwMzU2NjU0Njk5NTg2OTY0/usc-wr-jordan-addison.png',
+    'Dontayvion Wicks': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Dontayvion-Wicks-WR-Virginia.png',
+    'Jameson Williams': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Jameson-Williams-WR-OhioState.png',
+    'John Metchie III': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/John-Metchie-WR-Alabama.png',
+    'Treylon Burks': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Treylon-Burks-WR-Arkansas.png',
+    'Tyquan Thornton': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Tyquan-Thornton-WR-Baylor.png',
+    'Alec Pierce': 'https://yardsperfantasy.com/wp-content/uploads/2022/01/AB1F7897-5AFE-4DF6-9BFA-08357D09B4DE.png',
+    'George Pickens': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/George-Pickens-WR-Georgia.png',
+    'Wan\'Dale Robinson': 'https://www.si.com/.image/t_share/MTgzNDMwNjE5MTYwNjUwNzkw/i.png',
+    'Calvin Austin III': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4243389.png&w=350&h=254',
+    'Romeo Doubs': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Romeo-Doubs-WR-Nevada.png',
+    'Chris Olave': 'https://www.si.com/.image/t_share/MTgyMDk5MTA2Mjg0NDQ2ODUx/chris-olave.png',
+    'Garrett Wilson': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Garrett-Wilson-WR-OhioState.png',
+    'Jahan Dotson': 'https://www.si.com/.image/t_share/MTgyMTAxMDUyMTczMDY3Mzk1/i.png',
+    'David Bell': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4570409.png&w=350&h=254',
+    'Montrell Washington': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4248822.png&w=350&h=254',
+    'Danny Gray': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4689546.png',
+    'Jalen Tolbert': 'https://www.si.com/.image/t_share/MTgyNDUzODAyNjY4OTI2MDgz/i.png',
+    'Velus Jones Jr.': 'https://www.si.com/.image/t_share/MTg2MzczMzAzMzg3MDM4ODQ5/i.png',
+    'Erik Ezukanma': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Erik-Ezukanma-WR-TexasTech.png',
+    'Kyle Philips': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Kyle-Philips-WR-UCLA.png',
+    'Drake London': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Drake-London-WR-USC.png',
+    'Skyy Moore': 'https://www.maddenratings.com/wp-content/uploads/skyy-moore.png',
+    'Jaylen Waddle': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Jaylen-Waddle-WR-Alabama.png',
+    'DeVonta Smith': 'https://assets-sports.thescore.com/football/player/119710/headshot.png',
+    'Anthony Schwartz': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4430878.png',
+    'Amari Rodgers': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Amari-Rodgers-WR-Clemson.png',
+    'Cornell Powell': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035465.png',
+    'Kadarius Toney': 'https://profootballdraft.com/wp-content/uploads/2020/10/Toney.png',
+    'Ihmir Smith-Marsette': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Ihmir-Smith-Marsette-WR-Iowa.png',
+    'Tutu Atwell': 'https://footballguys.imgix.net/nfl-player-headshots/AtweTu00.png?auto=format,compress&h=160&trim=color',
+    'Dez Fitzpatrick': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036026.png',
+   
+    'Terrace Marshall Jr.': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Terrace-MarshallJr-WR-LSU.png',
+    'Nico Collins': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Nico-Collins-WR-Michigan.png',
+    'Rashod Bateman': 'https://profootballdraft.com/wp-content/uploads/2020/05/RashodBateman.png',
+    'Dyami Brown': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4361577.png',
+    'Jaelon Darden': 'https://www.playerprofiler.com/wp-content/uploads/2021/01/jaelon-darden-advanced-stats.png',
+    'Tylan Wallace': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4239993.png&w=350&h=254',
+    'Elijah Moore': 'https://www.maddenratings.com/wp-content/uploads/2022/01/AB1F7897-5AFE-4DF6-9BFA-08357D09B4DE.png',
+    'Rondale Moore': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Rondale-Moore-WR-Purdue.png',
+    'Simi Fehoko': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4241475.png&w=350&h=254',
+    'Josh Palmer': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4371986.png',
+    'Amon-Ra St. Brown': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Amon-Ra-StBrown-WR-USC.png',
+   
+    'Henry Ruggs III': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4243389.png&w=350&h=254',
+    'Jerry Jeudy': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Jerry-Jeudy-WR-Alabama.png',
+    'Brandon Aiyuk': 'https://www.si.com/.image/t_share/MTkwODkwMTI2MTQ0OTcyNDcw/smu-wr-rashee-rice.png',
+    'Denzel Mims': 'https://www.si.com/.image/t_share/MTkzODEwNTMzOTg2NjA4NjI0/tcu-wr-derius-davis.png',
+    'Tee Higgins': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Quentin-Johnston-WR-TCU.png',
+    'Laviska Shenault Jr.': 'https://www.si.com/.image/t_share/MTgzNDMwNjE5MTYwNjUwNzkw/i.png',
+    'Van Jefferson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4240380.png&w=350&h=254',
+    'Lynn Bowden Jr.': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4038818.png',
+    'Antonio Gandy-Golden': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4241802.png',
+    'Justin Jefferson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/recruiting/ncf/players/full/190661.png&w=350&h=254',
+    'Tyler Johnson': 'https://www.playerprofiler.com/wp-content/uploads/2018/01/MG.png',
+    'Chase Claypool': 'https://www.playerprofiler.com/wp-content/uploads/2021/04/Chase-claypool.png',
+    'CeeDee Lamb': 'https://www.playerprofiler.com/wp-content/uploads/2022/03/Ceedee-Lamb.png',
+    'K.J. Hamler': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4241181.png&w=350&h=254',
+    'Bryan Edwards': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035004.png',
+    'Jalen Reagor': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4037591.png&w=350&h=254',
+    'Devin Duvernay': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036116.png',
+    'Chase Young': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4428954.png&w=350&h=254',
+    'Justin Madubuike': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4378008.png&w=350&h=254',
+    'A.J. Green': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4244247.png&w=350&h=254',
+    'Jerry Tillery': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036095.png&w=350&h=254',
+  
+    'Emanuel Hall': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Emanuel-Hall-WR-Missouri.png',
+    'Anthony Johnson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036881.png',
+    'A.J. Brown': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036177.png',
+    'D.K. Metcalf': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035661.png',
+    'Marquise Brown': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4035513.png',
+    
+    'A.J. Brown (Ole Miss)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035533.png',
+    'J.J. Arcega-Whiteside': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4034970.png',
+    'Hakeem Butler': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4034979.png',
+    'Parris Campbell': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035615.png',
+    'Diontae Johnson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036373.png',
+    'Miles Boykin': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035368.png',
+    'Deebo Samuel': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035479.png',
+    'A.J. Richardson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4038311.png',
+    'Hollywood Brown': 'https://www.nfldraftbuzz.com/Content/PlayerHeadShots/Marquise-Brown-WR-Oklahoma.png',
+    'Andy Isabella': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4034929.png',
+    'Riley Ridley': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035458.png',
+    'Emanuel Butler': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4037623.png',
+    'Olabisi Johnson': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4037661.png',
+    'Kelvin Harmon': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036434.png',
+    'David Sills V': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036943.png',
+    'Darius Slayton': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036905.png',
+    'Mecole Hardman': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4361089.png',
+    'Deebo Samuel (South Carolina)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4035515.png',
+    'Jalen Hurd': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035523.png',
+    'Andy Isabella (UMass)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4034918.png',
+    'Penny Hart': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4037425.png',
+    'Marquise Brown (Oklahoma)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035516.png',
+    'Kelvin Harmon (NC State)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036456.png',
+    'Terry McLaurin': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4036005.png',
+    'Preston Williams': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4038044.png',
+   
+    'Miles Boykin (Notre Dame)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4035371.png',
+    'Hakeem Butler (Iowa State)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4034980.png',
+    'Deebo Samuel (South Carolina)': 'https://a.espncdn.com/combiner/i?img=/i/headshots/college-football/players/full/4035515.png',
+
+
+
+};
+    </script>
+</body>
+
+</html>
